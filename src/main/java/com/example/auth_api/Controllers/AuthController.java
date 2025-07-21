@@ -5,6 +5,7 @@ import com.example.auth_api.Models.Dtos.LoginUserDTO;
 import com.example.auth_api.Models.Dtos.RegisterUserDTO;
 import com.example.auth_api.Models.Dtos.VerifyUserDTO;
 import com.example.auth_api.Services.AuthService;
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +18,7 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public void register(@RequestBody RegisterUserDTO registerUserDTO){
+    public void register(@RequestBody RegisterUserDTO registerUserDTO) throws MessagingException {
         authService.register(registerUserDTO);
     }
 
@@ -35,7 +36,7 @@ public class AuthController {
 
     @PostMapping("/resend")
     @ResponseStatus(HttpStatus.OK)
-    public void resendVerificationCode(@RequestParam String email) {
+    public void resendVerificationCode(@RequestParam String email) throws MessagingException {
         authService.reenviarCodigoVerificacion(email);
     }
 }

@@ -1,5 +1,6 @@
 package com.example.auth_api.Config;
 
+import com.example.auth_api.Exceptions.Customs.UserNotFoundException;
 import com.example.auth_api.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +21,7 @@ public class AppConfig {
     @Bean
     UserDetailsService userDetailsService() {
         return username -> userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User no encontrado"));
+                .orElseThrow(() -> new UserNotFoundException(username));
     }
 
     @Bean

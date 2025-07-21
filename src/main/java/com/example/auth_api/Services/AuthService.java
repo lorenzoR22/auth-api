@@ -1,5 +1,6 @@
 package com.example.auth_api.Services;
 
+import com.example.auth_api.Exceptions.Customs.*;
 import com.example.auth_api.Models.Dtos.LoginResponse;
 import com.example.auth_api.Models.Dtos.LoginUserDTO;
 import com.example.auth_api.Models.Dtos.RegisterUserDTO;
@@ -35,12 +36,12 @@ public class AuthService {
     private final EmailService emailService;
     private final JwtUtils jwtUtils;
 
-    public void register(RegisterUserDTO registerUserDTO){
+    public void register(RegisterUserDTO registerUserDTO) throws MessagingException {
         if(userRepository.existsByUsername(registerUserDTO.getUsername())){
-            throw new RuntimeException("El username ya existe");
+            throw new UserAlreadyExistsException(registerUserDTO.getUsername());
         }
         if(userRepository.existsByEmail(registerUserDTO.getEmail())){
-            throw new RuntimeException("El email ya existe");
+            throw new UserAlreadyExistsException(registerUserDTO.getEmail());
         }
         User user=User.builder()
                 .username(registerUserDTO.getUsername())
@@ -52,7 +53,8 @@ public class AuthService {
                 .build();
 
         Role userRole=roleRepository.findByName(ERole.ROLE_USER)
-                .orElseThrow(()->new RuntimeException("No se encontro el role"));
+                .orElseThrow(()->new RoleNotFoundException(ERole.ROLE_USER.toString()));
+
         user.setRoles(Set.of(userRole));
 
         enviarVerificacionEmail(user);
@@ -73,10 +75,10 @@ public class AuthService {
 
     private User authenticate(LoginUserDTO input) {
         User user = userRepository.findByEmail(input.getEmail())
-                .orElseThrow(() -> new RuntimeException("User no encontrado"));
+                .orElseThrow(() -> new UserNotFoundException(input.getEmail()));
 
         if (!user.isEnabled()) {
-            throw new RuntimeException("Cuenta no verificada. Por favor verificala");
+            throw new AccountNotVerifiedException(input.getEmail());
         }
         try {
             authenticationManager.authenticate(
@@ -86,7 +88,7 @@ public class AuthService {
                     )
             );
         } catch (BadCredentialsException e) {
-            throw new RuntimeException("Contraseña incorrecta");
+            throw new InvalidCredentialsException();
         }
 
         return user;
@@ -100,7 +102,7 @@ public class AuthService {
             User user = optionalUser.get();
 
             if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
-                throw new RuntimeException("codigod de verificacion expirado");
+                throw new VerificationCodeExpiredException();
             }
             if (user.getVerificationCode().equals(input.getVerificationCode())) {
                 user.setEnabled(true);
@@ -108,31 +110,33 @@ public class AuthService {
                 user.setVerificationCodeExpiresAt(null);
                 userRepository.save(user);
             } else {
-                throw new RuntimeException("codigo de verificacion invalido");
+                throw new InvalidVerificationCodeException();
             }
         } else {
-            throw new RuntimeException("usuario no encontrado");
+            throw new UserNotFoundException(input.getEmail());
         }
     }
 
-    public void reenviarCodigoVerificacion(String email) {
+    public void reenviarCodigoVerificacion(String email) throws MessagingException {
         Optional<User> optionalUser = userRepository.findByEmail(email);
+
         if (optionalUser.isPresent()) {
             User user = optionalUser.get();
 
             if (user.isEnabled()) {
-                throw new RuntimeException("Ya esta verificada la cuenta");
+                throw new AccountAlreadyVerifiedException(email);
             }
             user.setVerificationCode(generarVerificacionCode());
             user.setVerificationCodeExpiresAt(LocalDateTime.now().plusHours(1));
             enviarVerificacionEmail(user);
+
             userRepository.save(user);
         } else {
-            throw new RuntimeException("Usuario no encontrado");
+            throw new UserNotFoundException(email);
         }
     }
 
-    private void enviarVerificacionEmail(User user) {
+    private void enviarVerificacionEmail(User user) throws MessagingException {
         String subject = "Verificacion de cuenta";
         String htmlMessage = "<html>"
                 + "<body style=\"font-family: Arial, sans-serif;\">"
@@ -147,15 +151,11 @@ public class AuthService {
                 + "</body>"
                 + "</html>";
 
-        try {
-            emailService.enviarNotificacionMail(user.getEmail(), subject, htmlMessage);
-        } catch (MessagingException e) {
-            e.printStackTrace();
-        }
+        emailService.enviarNotificacionMail(user.getEmail(), subject, htmlMessage);
     }
-        private String generarVerificacionCode() {
-            Random random = new Random();
-            int code = random.nextInt(900000) + 100000;
-            return String.valueOf(code);
-        }
+    private String generarVerificacionCode() {
+        Random random = new Random();
+        int code = random.nextInt(900000) + 100000;
+        return String.valueOf(code);
+    }
 }
