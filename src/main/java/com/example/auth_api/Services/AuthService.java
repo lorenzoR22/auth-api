@@ -101,6 +101,9 @@ public class AuthService {
         if (optionalUser.isPresent()) {
             User user = optionalUser.get();
 
+            if (user.isEnabled()) {
+                throw new AccountAlreadyVerifiedException(user.getEmail());
+            }
             if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
                 throw new VerificationCodeExpiredException();
             }
