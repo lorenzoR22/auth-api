@@ -38,6 +38,11 @@ public class User implements UserDetails {
 
     private boolean enabled = false;
 
+    @Override
+    public String getUsername(){
+        return this.email;
+    }
+
     // Relación opcional con roles
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

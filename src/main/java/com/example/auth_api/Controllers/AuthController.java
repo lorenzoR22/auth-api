@@ -1,25 +1,30 @@
 package com.example.auth_api.Controllers;
 
-import com.example.auth_api.Models.Dtos.LoginResponse;
-import com.example.auth_api.Models.Dtos.LoginUserDTO;
-import com.example.auth_api.Models.Dtos.RegisterUserDTO;
-import com.example.auth_api.Models.Dtos.VerifyUserDTO;
+import com.example.auth_api.Models.Dtos.*;
 import com.example.auth_api.Services.AuthService;
+import com.example.auth_api.Services.PasswordService;
+import com.example.auth_api.Services.RegistrationService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
 public class AuthController {
+
     private final AuthService authService;
+    private final RegistrationService registrationService;
+    private final PasswordService passwordService;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public void register(@RequestBody RegisterUserDTO registerUserDTO) throws MessagingException {
-        authService.register(registerUserDTO);
+        registrationService.register(registerUserDTO);
     }
 
     @PostMapping("/login")
@@ -31,12 +36,31 @@ public class AuthController {
     @PostMapping("/verify")
     @ResponseStatus(HttpStatus.OK)
     public void verifyUser(@RequestBody VerifyUserDTO verifyUserDTO){
-        authService.verifyUser(verifyUserDTO);
+        registrationService.verifyUser(verifyUserDTO);
     }
 
     @PostMapping("/resend")
     @ResponseStatus(HttpStatus.OK)
     public void resendVerificationCode(@RequestParam String email) throws MessagingException {
-        authService.reenviarCodigoVerificacion(email);
+        registrationService.reenviarCodigoVerificacion(email);
+    }
+
+    @PostMapping("/change-password")
+    @SecurityRequirement(name = "bearerAuth")
+    @ResponseStatus(HttpStatus.OK)
+    public void changePassword(@RequestBody ChangePasswordDTO dto, Principal principal){
+        passwordService.cambiarPassword(principal.getName(),dto);
+    }
+
+    @PostMapping("/solicitar-reset-password")
+    @ResponseStatus(HttpStatus.OK)
+    public void solicitarResetPassword(@RequestParam String email) throws MessagingException {
+        passwordService.solicitarResetPassword(email);
+    }
+
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.OK)
+    public void resetPassword(@RequestBody ResetPasswordDTO dto){
+        passwordService.resetPassword(dto);
     }
 }

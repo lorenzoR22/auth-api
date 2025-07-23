@@ -58,7 +58,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception e) {
-        ErrorResponse error = new ErrorResponse("INTERNAL_SERVER_ERROR", "Ha ocurrido un error inesperado.");
+        ErrorResponse error = new ErrorResponse("INTERNAL_SERVER_ERROR", e.getMessage());
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(IncorrectPasswordException.class)
+    public ResponseEntity<ErrorResponse> IncorrectPasswordExceptionException(IncorrectPasswordException e) {
+        ErrorResponse error = new ErrorResponse("INCORRECT_PASSWORD", e.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 }
